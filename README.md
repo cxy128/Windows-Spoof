@@ -1,2 +1,2 @@
 # SpoofSystemInformation
-修改Windows系统信息
+伪造Windows系统信息
