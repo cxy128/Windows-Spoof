@@ -53,7 +53,7 @@ function Get-RandomName {
 function Get-Separator {
 
     param (
-        [string]$KeyLength
+        [string]$KeyLength = ""
     )
     
     $SeparatorWidth = 20 - $KeyLength.ToString().Length
@@ -101,8 +101,93 @@ function Set-SystemInformation {
     Write-Output "Before $Entry`: $OriginValue After $Entry`: $($Value.Replace('{','').Replace('}',''))"
 }
 
+function Set-DisplayEDID {
+
+    $ErrorActionPreference = "SilentlyContinue"
+
+    $DisplayRegistry = "HKLM:\SYSTEM\CurrentControlSet\Enum\DISPLAY\"
+
+    $DisplayArray = $(Get-ChildItem -Path $DisplayRegistry | Select-Object -Property PSChildName).PsChildName
+    if($($DisplayArray -is [Array]) -eq $false) {
+        $DisplayArray = @($DisplayArray)
+    }
+
+    0..$($DisplayArray.Length - 1) | ForEach-Object {
+
+        $DisplayName = $DisplayArray[$_]
+        if([string]::IsNullOrEmpty($DisplayName)) {
+            continue
+        }
+
+        $DisplayPath = $DisplayRegistry + $DisplayName + "\"
+
+        $DisplayUidArray = $(Get-ChildItem -Path $DisplayPath | Select-Object -Property PSChildName).PsChildName
+        if($($DisplayUidArray -is [Array]) -eq $false) {
+            $DisplayUidArray = @($DisplayUidArray)
+        }
+
+        0..$($DisplayUidArray.Length - 1) | ForEach-Object {
+
+            $DisplayUidName = $DisplayUidArray[$_]
+            if([string]::IsNullOrEmpty($DisplayUidName)) {
+                continue
+            }
+
+            $DisplayUidPath = $DisplayPath + $DisplayUidName + "\"
+
+            $DisplayItemArray = $(Get-ChildItem -Path $DisplayUidPath | Select-Object -Property PSChildName).PsChildName
+            if($($DisplayItemArray -is [Array]) -eq $false) {
+                $DisplayItemArray = @($DisplayItemArray)
+            }
+
+            0..$($DisplayItemArray.Length - 1) | ForEach-Object {
+
+                $DisplayItemName = $DisplayItemArray[$_]
+                if([string]::Compare($DisplayItemName,"Device Parameters") -ne 0) {
+                    continue
+                }
+
+                $DisplayItemPath = $DisplayUidPath + $DisplayItemName
+
+                $EDID = $(Get-ItemProperty -Path $DisplayItemPath | Select-Object -Property EDID).EDID
+
+                $ProductCodeIDSeparator = Get-Separator "ProductCodeID"
+                $OriginProductCodeID = ""
+                $SpoofProductCodeID = ""
+                10..11 | ForEach-Object {
+                    $OriginProductCodeID += "0x{0:X2} " -f $($EDID[$_])
+                    $XorByte = $(Get-Random) -band 255
+                    $EDID[$_] = $XorByte -bxor $EDID[$_]
+                    $SpoofProductCodeID += "0x{0:X2} " -f $($EDID[$_])
+                }
+
+                $SerialNumberIDSeparator = Get-Separator "SerialNumberID"
+                $OriginSerialNumberID = ""
+                $SpoofSerialNumberID = ""
+                12..15 | ForEach-Object {
+                    $OriginSerialNumberID += "0x{0:X2} " -f $($EDID[$_])
+                    $XorByte = $(Get-Random) -band 255
+                    $EDID[$_] = $XorByte -bxor $EDID[$_]
+                    $SpoofSerialNumberID += "0x{0:X2} " -f $($EDID[$_])
+                }
+
+                $DisplaySeparator = Get-Separator
+                $DisplayInformation = "SerialNumberID${SerialNumberIDSeparator}$OriginSerialNumberID${DisplaySeparator}ProductCodeID${ProductCodeIDSeparator}$OriginProductCodeID"
+                $DisplayInformation | Out-File -FilePath $BakFileName -Append -Encoding unicode
+
+                Write-Output "Before ProductCodeID`: $OriginProductCodeID After ProductCodeID`: $SpoofProductCodeID"
+                Write-Output "Before SerialNumberID`: $OriginSerialNumberID After SerialNumberID`: $SpoofSerialNumberID"
+
+                Set-itemProperty -Path $DisplayItemPath -Name EDID -Value $EDID -Type Binary
+            }
+        }
+    }
+
+    $ErrorActionPreference = "Continue"
+}
+
 function Test {
-    
+
 #   设备ID
     $MachineId = "{$($(Get-RandomGuid).ToUpper())}" 
     Set-SystemInformation "HKLM:\SOFTWARE\Microsoft\SQMClient" "MachineId" "string" $MachineId
@@ -139,17 +224,12 @@ function Test {
     "InstallDate${InstallDateSeparator}$OriginInstallDate`nInstallTime${InstallTimeSeparator}$OriginInstallTime" | Out-File -FilePath $BakFileName -Append -Encoding unicode
     
     Write-Output "Before InstallDate`: $([datetime]::FromFileTime($OriginInstallTime)) After InstallDate`: $([datetime]::FromFileTime($DateTime))"
-     
+
 #   显示器
+    Set-DisplayEDID
 }
 
 Test
-
-
-
-
-
-
 
 
 
