@@ -1,12 +1,18 @@
 Import-Module ./Backup.ps1
 
 $Alphabet = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ"
+$HexBytes = "ABCDEF1234567890"
 
 $ConsoleSystemInformation = @{}
 $FileSystemInformation = @{}
 
-function Get-RandomGuid(){
+function Get-RandomGuid {
     return [guid]::NewGuid().ToString();
+}
+
+function Get-RandomHex {
+    $Random = Get-Random
+    return $HexBytes[$Random % $HexBytes.Length]
 }
 
 function Get-SerialNumber {
@@ -76,13 +82,51 @@ function Write-SystemInformation {
         $Separator = Get-Separator $_.Key
         $Content = "$($_.Key)${Separator}$($_.Value)"
         if($IsWriteBackupFile) {
-            $Content | Out-File -FilePath $BackupFilePathName -Append -Encoding unicode
+            $Content | Out-File -FilePath $BackupFilePathName -Append -Encoding utf8
         }
         $Content | Write-Host -ForegroundColor $Color     
     }
 }
 
-Export-ModuleMember -Variable ConsoleSystemInformation, FileSystemInformation -Function Get-RandomGuid, Get-SerialNumber, Get-RandomName, Get-Separator, Write-SystemInformation
+function Test-IsHexChar {
+
+    param (
+        [char]$HexChar
+    )
+
+    $Regex = "^[0-9a-fA-F]$"
+
+    return $HexChar -match $Regex
+}
+
+function Reset-Type {
+
+    param (
+        [string] $Type
+    )
+
+    if ($Type -eq "System.String") {
+        return "String"
+    }
+
+    if ($Type -eq "System.Int32") {
+        return "DWord"
+    }
+
+    if ($Type -eq "System.Byte[]") {
+        return "Binary"
+    }
+
+    if ($Type -eq "System.String[]"){
+        return "MultiString"
+    }
+
+    return ""
+}
+
+Export-ModuleMember -Variable ConsoleSystemInformation, FileSystemInformation
+
+Export-ModuleMember -Function Get-RandomGuid, Get-RandomHex, Get-SerialNumber, Get-RandomName, Get-Separator, Write-SystemInformation, Test-IsHexChar, Reset-Type
 
 
 
