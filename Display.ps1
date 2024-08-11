@@ -2,84 +2,72 @@ Import-Module ./Util.psm1
 
 function Set-DisplayEDID {
 
-    $ErrorActionPreference = "SilentlyContinue"
-
     $DisplayRegistry = "HKLM:\SYSTEM\CurrentControlSet\Enum\DISPLAY\"
+    $DisplayNameArray = $(Get-ChildItem -Path $DisplayRegistry | Select-Object -Property Name).Name
 
-    $DisplayArray = $(Get-ChildItem -Path $DisplayRegistry | Select-Object -Property PSChildName).PsChildName
-    if($($DisplayArray -is [Array]) -eq $false) {
-        $DisplayArray = @($DisplayArray)
+    if($DisplayNameArray -isnot [array]) {
+        $DisplayNameArray = @($DisplayNameArray)
     }
 
-    0..$($DisplayArray.Length - 1) | ForEach-Object {
+    for ($i = 0; $i -lt $DisplayNameArray.Length; $i++) {
 
-        $DisplayName = $DisplayArray[$_]
-        if([string]::IsNullOrEmpty($DisplayName)) {
-            continue
-        }
+        $DisplayNamePath = $DisplayNameArray[$i]
 
-        $DisplayPath = $DisplayRegistry + $DisplayName + "\"
+        $DisplayNameStr = $DisplayNamePath.SubString($DisplayNamePath.LastIndexOf("\") + 1)
 
-        $DisplayUidArray = $(Get-ChildItem -Path $DisplayPath | Select-Object -Property PSChildName).PsChildName
-        if($($DisplayUidArray -is [Array]) -eq $false) {
+        $DisplayNamePath = $DisplayNamePath.Replace("HKEY_LOCAL_MACHINE","HKLM:")
+
+        $DisplayUidArray = $(Get-ChildItem -Path $DisplayNamePath | Select-Object -Property Name).Name
+
+        if($DisplayUidArray -isnot [array]) {
             $DisplayUidArray = @($DisplayUidArray)
         }
 
-        0..$($DisplayUidArray.Length - 1) | ForEach-Object {
+        for ($n = 0; $n -lt $DisplayUidArray.Length; $n++) {
 
-            $DisplayUidName = $DisplayUidArray[$_]
-            if([string]::IsNullOrEmpty($DisplayUidName)) {
+            $DisplayUidPath = $DisplayUidArray[$n]
+
+            $DisplayUidStr = $DisplayUidPath.SubString($DisplayUidPath.LastIndexOf("\") + 1)
+            $DisplayUidStr = $DisplayUidStr.SubString($DisplayUidStr.LastIndexOf("UID"));
+
+            $DisplayUidPath = $DisplayUidPath.Replace("HKEY_LOCAL_MACHINE","HKLM:")
+            $DisplayUidPath = $DisplayUidPath + "\Device Parameters"
+
+            if(-not $(Test-Path -Path $DisplayUidPath)) {
                 continue
             }
 
-            $DisplayUidPath = $DisplayPath + $DisplayUidName + "\"
-
-            $DisplayItemArray = $(Get-ChildItem -Path $DisplayUidPath | Select-Object -Property PSChildName).PsChildName
-            if($($DisplayItemArray -is [Array]) -eq $false) {
-                $DisplayItemArray = @($DisplayItemArray)
+            $EDID = $(Get-ItemProperty -Path $DisplayUidPath | Select-Object -Property EDID).EDID
+            if( $EDID.Length -lt 16) {
+                continue
             }
 
-            0..$($DisplayItemArray.Length - 1) | ForEach-Object {
-
-                $DisplayItemName = $DisplayItemArray[$_]
-                if([string]::Compare($DisplayItemName,"Device Parameters") -ne 0) {
-                    continue
-                }
-
-                $DisplayItemPath = $DisplayUidPath + $DisplayItemName
-
-                $EDID = $(Get-ItemProperty -Path $DisplayItemPath | Select-Object -Property EDID).EDID
-
-                $ProductCodeIDSeparator = Get-Separator "ProductCodeId"
-                $OriginProductCodeID = ""
-                $SpoofProductCodeID = ""
-                10..11 | ForEach-Object {
-                    $OriginProductCodeID += "0x{0:X2} " -f $($EDID[$_])
-                    $XorByte = $(Get-Random) -band 255
-                    $EDID[$_] = $XorByte -bxor $EDID[$_]
-                    $SpoofProductCodeID += "0x{0:X2} " -f $($EDID[$_])
-                }
-
-                $SerialNumberIDSeparator = Get-Separator "SerialNumberId"
-                $OriginSerialNumberID = ""
-                $SpoofSerialNumberID = ""
-                12..15 | ForEach-Object {
-                    $OriginSerialNumberID += "0x{0:X2} " -f $($EDID[$_])
-                    $XorByte = $(Get-Random) -band 255
-                    $EDID[$_] = $XorByte -bxor $EDID[$_]
-                    $SpoofSerialNumberID += "0x{0:X2} " -f $($EDID[$_])
-                }
-
-                $FileSystemInformation.Add("ProductCodeId", $OriginProductCodeID)
-                $FileSystemInformation.Add("SerialNumberId", $OriginSerialNumberID)
-                
-                $ConsoleSystemInformation.Add("ProductCodeId", $SpoofProductCodeID)
-                $ConsoleSystemInformation.Add("SerialNumberId", $SpoofSerialNumberID)
-
-                Set-itemProperty -Path $DisplayItemPath -Name EDID -Value $EDID -Type Binary
+            $OriginProductCodeID = ""
+            $SpoofProductCodeID = ""
+            10..11 | ForEach-Object {
+                $OriginProductCodeID += "0x{0:X2} " -f $($EDID[$_])
+                $XorByte = $(Get-Random) -band 255
+                $EDID[$_] = $XorByte -bxor $EDID[$_]
+                $SpoofProductCodeID += "0x{0:X2} " -f $($EDID[$_])
             }
+
+            $OriginSerialNumberID = ""
+            $SpoofSerialNumberID = ""
+            12..15 | ForEach-Object {
+                $OriginSerialNumberID += "0x{0:X2} " -f $($EDID[$_])
+                $XorByte = $(Get-Random) -band 255
+                $EDID[$_] = $XorByte -bxor $EDID[$_]
+                $SpoofSerialNumberID += "0x{0:X2} " -f $($EDID[$_])
+            }
+
+            $FileSystemInformation.Add("$DisplayNameStr-$DisplayUidStr-$n-ProductCodeId", $OriginProductCodeID)
+            $FileSystemInformation.Add("$DisplayNameStr-$DisplayUidStr-$n-SerialNumberId", $OriginSerialNumberID)
+
+            $ConsoleSystemInformation.Add("$DisplayNameStr-$DisplayUidStr-$n-ProductCodeId", $SpoofProductCodeID)
+            $ConsoleSystemInformation.Add("$DisplayNameStr-$DisplayUidStr-$n-SerialNumberId", $SpoofSerialNumberID)
+
+            Set-itemProperty -Path $DisplayUidPath -Name EDID -Value $EDID -Type Binary
         }
     }
-
-    $ErrorActionPreference = "Continue"
 }
+

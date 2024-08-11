@@ -14,6 +14,7 @@ function Set-MotherBoard {
     }
 
     $SpoofLastConfig = -join $SpoofLastConfig
+
     New-Item -Path "HKLM:\SYSTEM\HardwareConfig\" -Name $SpoofLastConfig -Force *>$null
 
     $LastConfigEntries = $(Get-ChildItem -Path "HKLM:\SYSTEM\HardwareConfig\$OriginLastConfig" | Select-Object -Property Name).Name
@@ -33,7 +34,8 @@ function Set-MotherBoard {
     Set-ItemProperty -Path "HKLM:\SYSTEM\HardwareConfig" -Name LastConfig -Type String -Value $SpoofLastConfig
     
     Remove-Item -Path "HKLM:\SYSTEM\HardwareConfig\$OriginLastConfig" -Recurse -Force
-    
-    $FileSystemInformation.Add("LastConfig", $OriginLastConfig)
-    $ConsoleSystemInformation.Add("LastConfig", $SpoofLastConfig) 
+
+    $FileSystemInformation.Add("MotherBoard UUID", $OriginLastConfig)
+    $ConsoleSystemInformation.Add("MotherBoard UUID", $SpoofLastConfig)
 }
+

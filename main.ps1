@@ -2,12 +2,14 @@ Import-Module ./Util.psm1
 Import-Module ./System.ps1
 Import-Module ./Display.ps1
 Import-Module ./MotherBoard.ps1
+Import-Module ./Mac.ps1
 
 function Test {
 
     Set-SystemInformation
     Set-DisplayEDID
     Set-MotherBoard
+    Set-MacAddress
     
     "`n`n" | Write-Host
 
@@ -21,13 +23,6 @@ function Test {
 }
 
 Test
-
-Remove-Module -Name "Backups" *>$null
-Remove-Module -Name "Util" *>$null
-Remove-Module -Name "System" *>$null
-Remove-Module -Name "Display" *>$null
-Remove-Module -Name "MotherBoard" *>$null
-
 
 
 

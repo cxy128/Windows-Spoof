@@ -61,7 +61,7 @@ function Get-Separator {
         [string]$KeyLength = ""
     )
     
-    $SeparatorWidth = 30 - $KeyLength.ToString().Length
+    $SeparatorWidth = 50 - $KeyLength.ToCharArray().Length
     
     return " " * $SeparatorWidth
 }
@@ -78,12 +78,27 @@ function Write-SystemInformation {
         return    
     }
 
+    $TotalItems = $Entries.Count
+    $CurrentIndex = 1
+    $R = $true
+
     $Entries.GetEnumerator() | ForEach-Object {
+
         $Separator = Get-Separator $_.Key
         $Content = "$($_.Key)${Separator}$($_.Value)"
+
         if($IsWriteBackupFile) {
+
             $Content | Out-File -FilePath $BackupFilePathName -Append -Encoding utf8
+
+            if ($($TotalItems -eq $CurrentIndex) -and $($R)) {
+                "`n" | Out-File -FilePath $BackupFilePathName -Append -Encoding utf8
+                $R = $false
+            }
+
+            $CurrentIndex++
         }
+
         $Content | Write-Host -ForegroundColor $Color     
     }
 }
@@ -127,8 +142,6 @@ function Reset-Type {
 Export-ModuleMember -Variable ConsoleSystemInformation, FileSystemInformation
 
 Export-ModuleMember -Function Get-RandomGuid, Get-RandomHex, Get-SerialNumber, Get-RandomName, Get-Separator, Write-SystemInformation, Test-IsHexChar, Reset-Type
-
-
 
 
 

@@ -18,14 +18,14 @@ function Set-SystemInformation {
     Set-ItemProperty -Path "HKLM:\SOFTWARE\Microsoft\Windows NT\CurrentVersion" -Name "ProductId" -Type "string" -Value $SpoofProductId -Force
     $ConsoleSystemInformation.Add("ProductId", $SpoofProductId)
     
-#   设备名称
+#   设备名称    DESKTOP-XXX
     $OriginComputerName = $(Get-ItemProperty -Path "HKLM:\SYSTEM\CurrentControlSet\Control\ComputerName\ComputerName" | Select-Object -Property ComputerName).ComputerName
     $FileSystemInformation.Add("ComputerName", $OriginComputerName)
     
-    $SpoofComputerName = Get-RandomName 30
+    $SpoofComputerName = Get-RandomName 15
     Rename-Computer -NewName $SpoofComputerName -Force *>$null
     $ConsoleSystemInformation.Add("ComputerName", $SpoofComputerName)
-    
+
 #   安装日期
     $OriginInstallDate = $(Get-ItemProperty -Path 'HKLM:\SOFTWARE\Microsoft\Windows NT\CurrentVersion' | Select-Object -Property InstallDate).InstallDate
     $FileSystemInformation.Add("InstallDate", $OriginInstallDate)
@@ -43,3 +43,4 @@ function Set-SystemInformation {
     Set-ItemProperty -Path 'HKLM:\SOFTWARE\Microsoft\Windows NT\CurrentVersion' -Name 'InstallTime' -Value $SpoofInstallTime -Type QWord -Force
     $ConsoleSystemInformation.Add("InstallTime", $SpoofInstallTime)
 }
+
