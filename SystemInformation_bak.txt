@@ -1,0 +1,5 @@
+NVMe    Samsung SSD 960 CXE7 SerialNumber         0025_3851_81B0_425C.
+Samsung SSD             SVT0 SerialNumber         S6PZNM0W201940Y
+NVMe    Samsung SSD 970 EXE7 SerialNumber         0025_385C_0140_43D1.
+
+

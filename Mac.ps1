@@ -13,6 +13,7 @@ function Set-MacAddress {
     }
     
     if ($NetworkAdapter.Name -match "Kernel Debug") {
+        $ConsoleSystemInformation.Add("MacAddress","kernel debug mode nothing changed")
         return        
     }
 
