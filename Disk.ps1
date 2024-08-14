@@ -42,11 +42,11 @@ function Set-DiskSerialNumber {
         $Identifier = $DiskInformation.Identifier
         $OriginSerialNumber = $DiskInformation.SerialNumber
         
-        if ($OriginSerialNumber.Length -lt 10) {
+        if ($OriginSerialNumber.Length -lt 19) {
         
-            0..10 | ForEach-Object {
+            0..19 | ForEach-Object {
                 
-                if ($_ -and ($_ % 5) -eq 0) {
+                if ($_ -and ($_ % 4) -eq 0) {
                     
                     $SpoofSerialNumber += "_"
                 }
@@ -85,7 +85,7 @@ function Set-DiskId {
         return
     }
     
-    foreach($Path in $(Get-ChildItem -Path "HKLM:\HARDWARE\DESCRIPTION\System\MultifunctionAdapter\0\DiskController\0\DiskPeripheral").Name) {
+    foreach($Path in $(Get-ChildItem -Path $DiskPeripheralPath).Name) {
     
         $Path = $Path.Replace("HKEY_LOCAL_MACHINE","HKLM:")
         
@@ -108,7 +108,33 @@ function Set-DiskId {
     }
 }
 
+function Remove-VolumeGUID {
 
+    $ErrorActionPreference = "Ignore"
+
+    $MountedDevicesPath = "HKLM:\SYSTEM\MountedDevices"
+    if(Test-Path $MountedDevicesPath) {
+        Remove-Item -Path $MountedDevicesPath -Recurse -Force -Confirm:$false
+    }
+
+    $StatisticsPath = "HKLM:\SOFTWARE\Microsoft\Dfrg\Statistics"
+    if(Test-Path $StatisticsPath) {
+        Remove-Item -Path $StatisticsPath -Recurse -Force -Confirm:$false
+    }
+
+    $BitBucketVolumePath = "HKCU:\Software\Microsoft\Windows\CurrentVersion\Explorer\BitBucket\Volume"
+    if(Test-Path $BitBucketVolumePath) {
+        Remove-ItemProperty -Path "HKCU:\Software\Microsoft\Windows\CurrentVersion\Explorer\BitBucket" -Name "LastEnum" -Force -Confirm:$false
+        Remove-Item -Path $BitBucketVolumePath -Recurse -Force -Confirm:$false
+    }
+
+    $MountPoints2Path = "HKCU:\Software\Microsoft\Windows\CurrentVersion\Explorer\MountPoints2"
+    if(Test-Path $MountPoints2Path) {
+        Remove-Item -Path $MountPoints2Path -Recurse -Force -Confirm:$false
+    }
+
+    $ErrorActionPreference = "Continue"
+}
 
 
 

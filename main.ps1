@@ -13,6 +13,7 @@ function Test {
     Set-MacAddress
     Set-DiskSerialNumber
     Set-DiskId
+    Remove-VolumeGUID
     
     "`n`n" | Write-Host
 
