@@ -1,6 +1,6 @@
 Import-Module ./Util.psm1
 
-function Set-MotherBoard {
+function Set-BIOS {
 
     $OriginLastConfig = $(Get-ItemProperty -Path "HKLM:\SYSTEM\HardwareConfig" | Select-Object -Property LastConfig).LastConfig
     
@@ -35,7 +35,13 @@ function Set-MotherBoard {
     
     Remove-Item -Path "HKLM:\SYSTEM\HardwareConfig\$OriginLastConfig" -Recurse -Force
 
-    $FileSystemInformation.Add("MotherBoard UUID", $OriginLastConfig)
-    $ConsoleSystemInformation.Add("MotherBoard UUID", $SpoofLastConfig)
+    $FileSystemInformation.Add("BIOS Id", $OriginLastConfig)
+    $ConsoleSystemInformation.Add("BIOS Id", $SpoofLastConfig)
+    
+    $ErrorActionPreference = "Ignore"
+    
+    Remove-ItemProperty -Path "HKLM:\SYSTEM\CurrentControlSet\Services\mssmbios\Data" -Name "SMBiosData" -Force -Confirm:$false
+    
+    $ErrorActionPreference = "Continue"
 }
 

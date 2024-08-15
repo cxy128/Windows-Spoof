@@ -1,7 +1,7 @@
 Import-Module ./Util.psm1
 Import-Module ./System.ps1
 Import-Module ./Display.ps1
-Import-Module ./MotherBoard.ps1
+Import-Module ./BIOS.ps1
 Import-Module ./Mac.ps1
 Import-Module ./Disk.ps1
 
@@ -9,7 +9,7 @@ function Test {
 
     Set-SystemInformation
     Set-DisplayEDID
-    Set-MotherBoard
+    Set-BIOS
     Set-MacAddress
     Set-DiskSerialNumber
     Set-DiskId
@@ -25,7 +25,7 @@ function Test {
     "修改后: `n" | Write-Host
     Write-SystemInformation $ConsoleSystemInformation Red $false
 
-    Remove-Module Disk, Mac, MotherBoard, Display, System, Util, Backup -Force -Confirm:$false
+    Remove-Module Disk, Mac, BIOS, Display, System, Util, Backup -Force -Confirm:$false
 }
 
 Test
