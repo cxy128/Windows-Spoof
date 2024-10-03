@@ -5,7 +5,7 @@ function Set-DisplayEDID {
     $DisplayRegistry = "HKLM:\SYSTEM\CurrentControlSet\Enum\DISPLAY\"
     $DisplayNameArray = $(Get-ChildItem -Path $DisplayRegistry | Select-Object -Property Name).Name
 
-    if($DisplayNameArray -isnot [array]) {
+    if ($DisplayNameArray -isnot [array]) {
         $DisplayNameArray = @($DisplayNameArray)
     }
 
@@ -15,11 +15,11 @@ function Set-DisplayEDID {
 
         $DisplayNameStr = $DisplayNamePath.SubString($DisplayNamePath.LastIndexOf("\") + 1)
 
-        $DisplayNamePath = $DisplayNamePath.Replace("HKEY_LOCAL_MACHINE","HKLM:")
+        $DisplayNamePath = $DisplayNamePath.Replace("HKEY_LOCAL_MACHINE", "HKLM:")
 
         $DisplayUidArray = $(Get-ChildItem -Path $DisplayNamePath | Select-Object -Property Name).Name
 
-        if($DisplayUidArray -isnot [array]) {
+        if ($DisplayUidArray -isnot [array]) {
             $DisplayUidArray = @($DisplayUidArray)
         }
 
@@ -30,15 +30,15 @@ function Set-DisplayEDID {
             $DisplayUidStr = $DisplayUidPath.SubString($DisplayUidPath.LastIndexOf("\") + 1)
             $DisplayUidStr = $DisplayUidStr.SubString($DisplayUidStr.LastIndexOf("UID"));
 
-            $DisplayUidPath = $DisplayUidPath.Replace("HKEY_LOCAL_MACHINE","HKLM:")
+            $DisplayUidPath = $DisplayUidPath.Replace("HKEY_LOCAL_MACHINE", "HKLM:")
             $DisplayUidPath = $DisplayUidPath + "\Device Parameters"
 
-            if(-not $(Test-Path -Path $DisplayUidPath)) {
+            if (-not $(Test-Path -Path $DisplayUidPath)) {
                 continue
             }
 
             $EDID = $(Get-ItemProperty -Path $DisplayUidPath | Select-Object -Property EDID).EDID
-            if( $EDID.Length -lt 16) {
+            if ( $EDID.Length -lt 16) {
                 continue
             }
 
@@ -71,3 +71,54 @@ function Set-DisplayEDID {
     }
 }
 
+function Set-GpuGuid {
+
+    $UserModeDriverGUIDPath = 'HKLM:\HKEY_LOCAL_MACHINE\SYSTEM\ControlSet001\Control\Class\{4d36e968-e325-11ce-bfc1-08002be10318}\0000'
+
+    if (-not (Test-Path -Path $UserModeDriverGUIDPath)) {
+        return
+    }
+
+    $OriginUserModeDriverGUID = Get-ItemProperty -Path $UserModeDriverGUIDPath -Name "UserModeDriverGuid" -ErrorAction SilentlyContinue
+
+    $OriginUserModeDriverGUID = if ($OriginUserModeDriverGUID -and $OriginUserModeDriverGUID.UserModeDriverGUID) {
+
+        $OriginUserModeDriverGUID.UserModeDriverGUID -replace '{' -replace '}'
+
+    } else {
+
+        'null'
+    }
+
+    $FileSystemInformation.Add("GpuUserModeDriverGUID", $OriginUserModeDriverGUID)
+
+    $SpoofUserModeDriverGUID = [System.Guid]::NewGuid().Guid
+    Set-ItemProperty -Path $UserModeDriverGUIDPath -Name "UserModeDriverGUID" -Value "{$SpoofUserModeDriverGUID}" -Type String -Force
+    $ConsoleSystemInformation.Add("GpuUserModeDriverGUID", $SpoofUserModeDriverGUID)
+}
+
+function Set-VideoId {
+
+    $VideoPath = 'HKLM:\SYSTEM\ControlSet001\Services\BasicDisplay\Video'
+
+    if (-not (Test-Path -Path $VideoPath)) {
+        return
+    }
+
+    $VideoId = Get-ItemProperty -Path $VideoPath
+
+    $OriginVideoId = if($VideoId -and $VideoId.VideoID) {
+        
+        $VideoId.VideoID -replace '{' -replace '}'
+
+    } else {
+
+        'null'
+    }
+
+    $FileSystemInformation.Add("VideoId", $OriginVideoId)
+
+    $SpoofVideoId = [System.Guid]::NewGuid().Guid
+    Set-ItemProperty -Path $VideoPath -Name "VideoID" -Value "{$SpoofVideoId}" -Type String -Force
+    $ConsoleSystemInformation.Add("VideoId", $SpoofVideoId)
+}

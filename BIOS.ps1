@@ -1,4 +1,4 @@
-Import-Module ./Util.psm1
+Import-Module .\Util.psm1
 
 function Set-BIOS {
 

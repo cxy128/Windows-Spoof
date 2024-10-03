@@ -1,9 +1,9 @@
-Import-Module ./Util.psm1
-Import-Module ./System.ps1
-Import-Module ./Display.ps1
-Import-Module ./BIOS.ps1
-Import-Module ./Mac.ps1
-Import-Module ./Disk.ps1
+Import-Module .\Util.psm1
+Import-Module .\System.ps1
+Import-Module .\Display.ps1
+Import-Module .\BIOS.ps1
+Import-Module .\Mac.ps1
+Import-Module .\Disk.ps1
 
 function Test {
 
@@ -14,6 +14,10 @@ function Test {
     Set-DiskSerialNumber
     Set-DiskId
     Remove-VolumeGUID
+    Set-GpuGuid
+    Set-HidGuid
+    Set-IntelPMT
+    Set-VideoId
     
     "`n`n" | Write-Host
 

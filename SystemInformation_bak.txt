@@ -3,3 +3,26 @@ Samsung SSD             SVT0 SerialNumber         S6PZNM0W201940Y
 NVMe    Samsung SSD 970 EXE7 SerialNumber         0025_385C_0140_43D1.
 
 
+AOC2579-UID0-0-ProductCodeId                      0x79 0x25 
+PHL0970-UID0-0-SerialNumberId                     0x42 0x10 0x00 0x00 
+ProductId                                         00331-10000-00001-AA003
+Samsung SSD             SVT0 SerialNumber         S6PZNM0W201940Y     
+MacAddress                                        B0:6E:BF:C0:11:68
+DiskId-0                                          9db67f10-00000000-A
+PHL0970-UID0-0-ProductCodeId                      0x70 0x09 
+DiskId-2                                          795253e8-dd68eb58-A
+NVMe    Samsung SSD 970 EXE7 SerialNumber         0025_385C_0140_43D1.
+AOC2579-UID4352-1-SerialNumberId                  0xF8 0x3A 0x00 0x00 
+PHL0970-UID4358-1-SerialNumberId                  0x42 0x10 0x00 0x00 
+BIOS Id                                           {bfc03b1c-0143-a22f-f6a8-b06ebfc01168}
+InstallTime                                       133674115220011496
+ComputerName                                      OSAUSHHBZKISEKY
+MachineId                                         {DFF3BFEF-A1F8-4409-B3C3-EBF33AD4151D}
+AOC2579-UID0-0-SerialNumberId                     0xF8 0x3A 0x00 0x00 
+DiskId-1                                          7952942c-dd68eb54-A
+NVMe    Samsung SSD 960 CXE7 SerialNumber         0025_3851_81B0_425C.
+AOC2579-UID4352-1-ProductCodeId                   0x79 0x25 
+PHL0970-UID4358-1-ProductCodeId                   0x70 0x09 
+InstallDate                                       1722937922
+
+
