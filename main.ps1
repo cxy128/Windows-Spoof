@@ -4,6 +4,7 @@ Import-Module .\Display.ps1
 Import-Module .\BIOS.ps1
 Import-Module .\Mac.ps1
 Import-Module .\Disk.ps1
+Import-Module .\Hid.ps1
 
 function Test {
 

@@ -24,8 +24,8 @@ function Set-TraceGuid {
 
     $FileSystemInformation.Add("Origin$Name", $OriginTraceGuid)
 
-    $SpoofTraceGuid = [System.Guid]::NewGuid().Guid
-    Set-ItemProperty -Path $Path -Value "{$SpoofTraceGuid}" -Type String -Force
+    $SpoofTraceGuid = $([System.Guid]::NewGuid()).Guid
+    Set-ItemProperty -Path $Path -Name $Name -Value "{$SpoofTraceGuid}" -Type String -Force
     $ConsoleSystemInformation.Add("Spoof$Name",$SpoofTraceGuid) 
 }
 

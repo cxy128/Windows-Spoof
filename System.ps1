@@ -1,4 +1,4 @@
-Import-Module ./Util.psm1
+Import-Module .\Util.psm1
 
 function Set-DevQeuryId {
 
@@ -155,18 +155,8 @@ function Set-SystemInformation {
     Set-ItemProperty -Path 'HKLM:\SOFTWARE\Microsoft\Windows NT\CurrentVersion' -Name 'InstallTime' -Value $SpoofInstallTime -Type QWord -Force
     $ConsoleSystemInformation.Add("InstallTime", $SpoofInstallTime)
 
-    #  更新服务客户端标识符
-    $OriginSusClientId = $(Get-ItemProperty -Path 'HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\WindowsUpdate' | Select-Object -Property SusClientId).SusClientId
-    $FileSystemInformation.Add("SusClientId", $OriginSusClientId)
-
-    $SpoofSusClientId = ([System.Guid]::NewGuid()).Guid
-    Set-ItemProperty -Path 'HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\WindowsUpdate' -Name 'SusClientId' -Value $SpoofSusClientId -Type String -Force
-    $ConsoleSystemInformation.Add("SusClientId", $SpoofSusClientId)
-
-    # 
     Set-IDConfigDB
     Set-CryptographyId
     Set-WindowUpdateId
-
 }
 
