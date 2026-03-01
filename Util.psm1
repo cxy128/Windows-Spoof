@@ -1,156 +1,270 @@
-Import-Module ./Backup.ps1
+Import-Module "$PSScriptRoot\Backup.psm1"
 
-$Alphabet = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ"
-$HexBytes = "ABCDEF1234567890"
+$script:Alphabet = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ"
+$script:HexBytes = "ABCDEF1234567890"
 
-$ConsoleSystemInformation = @{}
-$FileSystemInformation = @{}
+$script:ConsoleSystemInformation = @{}
+$script:FileSystemInformation = @{}
+
+$script:HexRegex = [regex]"^[0-9a-fA-F]$"
 
 function Get-RandomGuid {
-    return [guid]::NewGuid().ToString();
+
+    return [guid]::NewGuid().ToString()
 }
 
 function Get-RandomHex {
-    $Random = Get-Random
-    return $HexBytes[$Random % $HexBytes.Length]
+
+    return $script:HexBytes[(Get-Random -Minimum 0 -Maximum $script:HexBytes.Length)]
 }
 
 function Get-SerialNumber {
 
     param (
+        [ValidateRange(1, 20)]
         [int]$SectionNumber = 5,
+
+        [ValidateRange(1, 20)]
         [int]$ItemNumber = 5
     )
 
-   $Value = ""
-   1..$SectionNumber | ForEach-Object {
-   
-        $RandomNumber = [string]::Concat($(Get-Random))
-        if($RandomNumber.Length -lt 5) {
-            $RandomNumber = '00000'
-        }
-        
-        $RandomNumber = $RandomNumber.SubString(0,$ItemNumber)
-        if($_ -ne $SectionNumber) {
-           $RandomNumber = -join($RandomNumber,'-')
-        }
-        
-        $Value += $RandomNumber
-   }
-   
-   return $Value
+    $sections = foreach ($i in 1..$SectionNumber) {
+        -join (1..$ItemNumber | ForEach-Object {
+                Get-Random -Minimum 0 -Maximum 10
+            })
+    }
+
+    return $sections -join "-"
 }
 
 function Get-RandomName {
 
     param (
+        [ValidateRange(1, 100)]
         [int]$NameLength = 10       
     )
 
-    $DeviceName = ""
-    1..$NameLength | ForEach-Object {
-        $DeviceName += $Alphabet[$(0..$Alphabet.Length | Get-Random)]
+    $builder = New-Object System.Text.StringBuilder
+
+    for ($i = 0; $i -lt $NameLength; $i++) {
+        $index = Get-Random -Minimum 0 -Maximum $script:Alphabet.Length
+        [void]$builder.Append($script:Alphabet[$index])
     }
-    
-    return $DeviceName
+
+    return $builder.ToString()
 }
 
 function Get-Separator {
 
     param (
-        [string]$KeyLength = ""
+        [Parameter(Mandatory)]
+        [string]$Key
     )
-    
-    $SeparatorWidth = 50 - $KeyLength.ToCharArray().Length
-    
-    return " " * $SeparatorWidth
+
+    $width = 50 - $Key.Length
+    if ($width -lt 1) { $width = 1 }
+
+    return " " * $width
 }
 
 function Write-SystemInformation {
 
     param (
-        [System.Collections.Hashtable] $Entries,
-        [string] $Color = "Green",
-        [boolean] $IsWriteBackupFile = $false
+        [Parameter(Mandatory)]
+        [hashtable]$Entries,
+
+        [ValidateSet("Green", "Yellow", "Red", "Cyan", "White")]
+        [string]$Color = "Green",
+
+        [switch]$WriteBackup
     )
     
     if ($Entries.Count -eq 0) {
         return    
     }
 
-    $TotalItems = $Entries.Count
-    $CurrentIndex = 1
-    $R = $true
+    $buffer = New-Object System.Collections.Generic.List[string]
 
-    $Entries.GetEnumerator() | ForEach-Object {
+    foreach ($entry in $Entries.GetEnumerator()) {
 
-        $Separator = Get-Separator $_.Key
-        $Content = "$($_.Key)${Separator}$($_.Value)"
+        $separator = Get-Separator -Key $entry.Key
+        $content = "{0}{1}{2}" -f $entry.Key, $separator, $entry.Value
 
-        if($IsWriteBackupFile) {
+        $buffer.Add($content)
 
-            $Content | Out-File -FilePath $BackupFilePathName -Append -Encoding utf8
+        Write-Host $content -ForegroundColor $Color
+    }
 
-            if ($($TotalItems -eq $CurrentIndex) -and $($R)) {
-                "`n" | Out-File -FilePath $BackupFilePathName -Append -Encoding utf8
-                $R = $false
-            }
-
-            $CurrentIndex++
-        }
-
-        $Content | Write-Host -ForegroundColor $Color     
+    if ($WriteBackup) {
+        Initialize-BackupFile
+        $path = Get-BackupFilePathName
+        Add-Content -Path $path -Value $buffer
+        Add-Content -Path $path -Value ""
     }
 }
 
 function Test-IsHexChar {
 
     param (
+        [Parameter(Mandatory)]
         [char]$HexChar
     )
 
-    $Regex = "^[0-9a-fA-F]$"
-
-    return $HexChar -match $Regex
+    return $script:HexRegex.IsMatch($HexChar)
 }
 
 function Reset-Type {
 
     param (
-        [string] $Type
+        [Parameter(Mandatory)]
+        [string]$Type
     )
 
-    if ($Type -eq "System.String") {
-        return "String"
+    switch ($Type) {
+        "System.String" { return "String" }
+        "System.Int32" { return "DWord" }
+        "System.Byte[]" { return "Binary" }
+        "System.String[]" { return "MultiString" }
+        default { return "" }
+    }
+}
+
+function Set-RegistryGuidValue {
+
+    param(
+        [Parameter(Mandatory)]
+        [string]$Path,
+
+        [Parameter(Mandatory)]
+        [string]$Name,
+
+        [switch]$WrapWithBraces
+    )
+
+    if (-not (Test-Path $Path)) {
+        return
     }
 
-    if ($Type -eq "System.Int32") {
-        return "DWord"
+    try {
+
+        $item = Get-ItemProperty -Path $Path -ErrorAction Stop
+
+        $originValue = if ($item.$Name) {
+            $item.$Name
+        }
+        else {
+            'null'
+        }
+
+        $script:FileSystemInformation[$Name] = $originValue
+
+        $newGuid = [guid]::NewGuid().Guid
+
+        if ($WrapWithBraces) {
+            $newGuid = "{$newGuid}"
+        }
+
+        Set-ItemProperty -Path $Path -Name $Name -Value $newGuid -Type String -Force -ErrorAction Stop
+
+        $script:ConsoleSystemInformation[$Name] = $newGuid
     }
 
-    if ($Type -eq "System.Byte[]") {
-        return "Binary"
+    catch {
+        Write-Warning "Failed to update $Name at $Path : $_"
+    }
+}
+
+function Update-RegistryValue {
+
+    param(
+        [Parameter(Mandatory)]
+        [string]$Path,
+
+        [Parameter(Mandatory)]
+        [string]$Name,
+
+        [Parameter(Mandatory)]
+        [scriptblock]$NewValueScript,
+
+        [string]$Type = "String"
+    )
+
+    if (-not (Test-Path $Path)) {
+        Write-Warning "Registry path not found: $Path"
+        return
     }
 
-    if ($Type -eq "System.String[]"){
-        return "MultiString"
+    try {
+
+        $item = Get-ItemProperty -Path $Path -ErrorAction Stop
+        $origin = $item.$Name
+
+        if (-not $origin) {
+            $origin = "null"
+        }
+
+        $script:FileSystemInformation[$Name] = $origin
+
+        $newValue = & $NewValueScript
+
+        Set-ItemProperty `
+            -Path $Path `
+            -Name $Name `
+            -Value $newValue `
+            -Type $Type `
+            -Force `
+            -ErrorAction Stop
+
+        $script:ConsoleSystemInformation[$Name] = $newValue
     }
 
-    return ""
+    catch {
+        Write-Warning "Failed updating $Name : $_"
+    }
+}
+
+function Test-IsAdministrator {
+
+    $identity  = [Security.Principal.WindowsIdentity]::GetCurrent()
+    $principal = New-Object Security.Principal.WindowsPrincipal($identity)
+
+    return $principal.IsInRole(
+        [Security.Principal.WindowsBuiltInRole]::Administrator
+    )
+}
+
+function Set-ComputerName {
+
+    try {
+
+        $origin = $(Get-ItemProperty -Path "HKLM:\SYSTEM\CurrentControlSet\Control\ComputerName\ComputerName" | Select-Object -Property ComputerName).ComputerName
+        $script:FileSystemInformation["ComputerName"] = $origin
+
+        $newName = Get-RandomName 15
+
+        Rename-Computer -NewName $newName -Force -ErrorAction Stop -WarningAction SilentlyContinue
+
+        $script:ConsoleSystemInformation["ComputerName"] = $newName
+
+    } catch {
+
+        Write-Warning $_
+    }
 }
 
 Export-ModuleMember -Variable ConsoleSystemInformation, FileSystemInformation
 
-Export-ModuleMember -Function Get-RandomGuid, Get-RandomHex, Get-SerialNumber, Get-RandomName, Get-Separator, Write-SystemInformation, Test-IsHexChar, Reset-Type
+Export-ModuleMember -Function Get-RandomGuid, Get-RandomHex, Get-SerialNumber, Get-RandomName, Get-Separator
 
+Export-ModuleMember -Function Write-SystemInformation
 
+Export-ModuleMember -Function Test-IsHexChar, Test-IsAdministrator
 
+Export-ModuleMember -Function Reset-Type
 
+Export-ModuleMember -Function Set-RegistryGuidValue
 
+Export-ModuleMember -Function Update-RegistryValue
 
-
-
-
-
-
+Export-ModuleMember -Function Set-ComputerName
 
