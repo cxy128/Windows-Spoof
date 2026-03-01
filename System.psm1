@@ -47,7 +47,7 @@ function Set-SystemInformation {
 
     Update-RegistryValue -Path 'HKLM:\SOFTWARE\Microsoft\Windows NT\CurrentVersion' -Name 'InstallTime' -NewValueScript { [long](Get-Date).ToFileTimeUtc() } -Type QWord
 
-    Set-RegistryGuidValue -Path 'HKLM:\SYSTEM\ControlSet001\Services\IntelPMT\Parameters' -Name 'Intel-PMT' -WrapWithBraces:$true
+    Set-RegistryGuidValue -Path 'HKLM:\SYSTEM\CurrentControlSet\Services\IntelPMT\Parameters' -Name 'Intel-PMT' -WrapWithBraces:$true
 
     Set-ComputerName
 
